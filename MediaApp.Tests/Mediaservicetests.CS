@@ -269,4 +269,4 @@ public class MediaApiIntegrationTests : IClassFixture<WebApplicationFactory<Prog
         var response = await _client.GetAsync("/api/media/99999");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
-}
+} 
