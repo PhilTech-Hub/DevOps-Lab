@@ -1,0 +1,53 @@
+version: '3.8'
+
+# =============================================================================
+# Project 2 — Containerized Web Application Deployment
+#
+# Architecture:
+#   Browser → NGINX (port 80) → MediaApp2 ASP.NET API (port 5000)
+#
+# Run with:  docker-compose up --build
+# Stop with: docker-compose down
+# =============================================================================
+
+services:
+
+  # ── NGINX Reverse Proxy ──────────────────────────────────────────────────────
+  # Acts as the front door — receives all traffic on port 80
+  # and forwards it to the ASP.NET app
+  nginx:
+    image: nginx:alpine
+    container_name: project2-nginx
+    ports:
+      - "80:80"           # Public port — visit http://localhost
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - mediaapp2         # Wait for app to start first
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── ASP.NET Core API ─────────────────────────────────────────────────────────
+  # The actual application — NOT exposed directly to the internet
+  # Only NGINX can talk to it (via the internal Docker network)
+  mediaapp2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: project2-app
+    expose:
+      - "5000"            # Internal only — not accessible from outside Docker
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+    restart: unless-stopped
+    networks:
+      - app-network
+
+# ── Network ───────────────────────────────────────────────────────────────────
+# Both containers share this private network
+# NGINX uses the service name "mediaapp2" to reach the app
+networks:
+  app-network:
+    driver: bridge
