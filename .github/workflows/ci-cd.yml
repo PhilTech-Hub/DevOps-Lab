@@ -104,8 +104,11 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: 📦 Restore packages
+        run: dotnet restore MediaApp.sln
+
       - name: 📦 Publish app
-        run: dotnet publish MediaApp/MediaApp.csproj -c Release -o ./publish --no-restore
+        run: dotnet publish MediaApp/MediaApp.csproj -c Release -o ./publish
 
       # Uncomment when Azure secret is added:
       # - name: 🔐 Login to Azure
