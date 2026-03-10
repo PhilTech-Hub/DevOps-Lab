@@ -36,7 +36,7 @@ jobs:
       - name: 🔨 Build solution
         run: dotnet build MediaApp.sln --no-restore -c Release
 
-      - name: 🧪 Run all testsgit add ".github/workflows/Ci-cd.yml"
+      - name: 🧪 Run all tests
         run: |
           dotnet test MediaApp.sln \
             --no-build \
