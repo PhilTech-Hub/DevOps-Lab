@@ -31,14 +31,14 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: 📦 Restore packages
-        run: dotnet restore
+        run: dotnet restore MediaApp.sln
 
       - name: 🔨 Build solution
-        run: dotnet build --no-restore -c Release
+        run: dotnet build MediaApp.sln --no-restore -c Release
 
-      - name: 🧪 Run all tests
+      - name: 🧪 Run all testsgit add ".github/workflows/Ci-cd.yml"
         run: |
-          dotnet test \
+          dotnet test MediaApp.sln \
             --no-build \
             -c Release \
             --verbosity normal \
@@ -105,7 +105,7 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: 📦 Publish app
-        run: dotnet publish MediaApp/MediaApp.csproj -c Release -o ./publish
+        run: dotnet publish MediaApp/MediaApp.csproj -c Release -o ./publish --no-restore
 
       # Uncomment when Azure secret is added:
       # - name: 🔐 Login to Azure
