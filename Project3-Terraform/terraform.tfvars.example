@@ -1,0 +1,11 @@
+# =============================================================================
+# terraform.tfvars.example
+# Copy this file to terraform.tfvars and fill in your real values
+# This example file IS safe to commit to GitHub
+# =============================================================================
+
+subscription_id = "your-azure-subscription-id-here"
+project_name    = "mediaapp"
+environment     = "dev"
+location        = "East US"
+app_service_sku = "F1"
