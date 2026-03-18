@@ -35,5 +35,5 @@ variable "location" {
 variable "app_service_sku" {
   description = "App Service pricing tier (F1 = Free)"
   type        = string
-  default     = "F1"  # Free tier — no cost
+  default     = "F1" # Free tier — no cost
 }

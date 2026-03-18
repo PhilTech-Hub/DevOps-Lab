@@ -28,7 +28,7 @@ resource "azurerm_linux_web_app" "main" {
   service_plan_id     = azurerm_service_plan.main.id
 
   site_config {
-    always_on = false  # Must be false for free tier
+    always_on = false # Must be false for free tier
 
     application_stack {
       dotnet_version = "8.0"
@@ -36,7 +36,7 @@ resource "azurerm_linux_web_app" "main" {
   }
 
   app_settings = {
-    "ASPNETCORE_ENVIRONMENT"        = var.environment == "prod" ? "Production" : "Development"
+    "ASPNETCORE_ENVIRONMENT"              = var.environment == "prod" ? "Production" : "Development"
     "WEBSITES_ENABLE_APP_SERVICE_STORAGE" = "false"
   }
 

@@ -9,7 +9,7 @@ resource "azurerm_virtual_network" "main" {
   name                = "${var.project_name}-${var.environment}-vnet"
   resource_group_name = var.resource_group_name
   location            = var.location
-  address_space       = ["10.0.0.0/16"]  # IP range for the network
+  address_space       = ["10.0.0.0/16"] # IP range for the network
 
   tags = {
     Project     = var.project_name
