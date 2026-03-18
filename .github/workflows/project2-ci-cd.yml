@@ -1,0 +1,133 @@
+name: CI/CD — Project 2 Docker + NGINX
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'Project2-Docker/**'   # Only triggers when Project2 files change
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'Project2-Docker/**'
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  IMAGE_NAME: project2-media-app
+
+jobs:
+
+  # ── JOB 1: Build & Test ─────────────────────────────────────────────────────
+  build-and-test:
+    name: 🔨 Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: 📦 Restore packages
+        working-directory: Project2-Docker
+        run: dotnet restore MediaApp2.sln
+
+      - name: 🔨 Build solution
+        working-directory: Project2-Docker
+        run: dotnet build MediaApp2.sln --no-restore -c Release
+
+      - name: 🧪 Run tests
+        working-directory: Project2-Docker
+        run: |
+          dotnet test MediaApp2.sln \
+            --no-build \
+            -c Release \
+            --verbosity normal \
+            --logger "trx;LogFileName=test-results.trx" \
+            --results-directory ./TestResults
+
+      - name: 📊 Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: project2-test-results
+          path: Project2-Docker/TestResults/*.trx
+
+  # ── JOB 2: Docker Build ──────────────────────────────────────────────────────
+  docker-build:
+    name: 🐳 Docker + NGINX Build
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🏗️ Build ASP.NET Docker image
+        working-directory: Project2-Docker
+        run: |
+          docker build \
+            -t ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -t ${{ env.IMAGE_NAME }}:latest \
+            .
+
+      - name: 🔍 Verify NGINX config exists
+        working-directory: Project2-Docker
+        run: |
+          echo "NGINX config:"
+          cat nginx/nginx.conf
+
+      - name: 🔍 Show image size
+        run: docker images ${{ env.IMAGE_NAME }}
+
+      - name: 🧪 Test docker-compose config is valid
+        working-directory: Project2-Docker
+        run: docker compose config
+
+  # ── JOB 3: Integration Check ─────────────────────────────────────────────────
+  integration-check:
+    name: 🔗 Container Integration Check
+    runs-on: ubuntu-latest
+    needs: docker-build
+
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🚀 Start full stack with docker-compose
+        working-directory: Project2-Docker
+        run: docker compose up -d --build
+
+      - name: ⏳ Wait for services to be ready
+        run: sleep 15
+
+      - name: 🧪 Test NGINX is responding
+        run: |
+          curl -f http://localhost/api/media2/health || exit 1
+          echo "✅ NGINX reverse proxy is working!"
+
+      - name: 🧪 Test API returns data
+        run: |
+          curl -f http://localhost/api/media2 || exit 1
+          echo "✅ API is returning data through NGINX!"
+
+      - name: 🧪 Test container info endpoint
+        run: |
+          curl -f http://localhost/api/media2/container-info || exit 1
+          echo "✅ Container info endpoint working!"
+
+      - name: 📋 Show running containers
+        run: docker compose -f Project2-Docker/docker-compose.yml ps
+
+      - name: 🛑 Stop containers
+        if: always()
+        working-directory: Project2-Docker
+        run: docker compose down
