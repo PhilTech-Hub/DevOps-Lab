@@ -3,13 +3,9 @@ name: CI/CD — Project 4 Monitoring & Logging
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'Project4-Monitoring/**'
   pull_request:
     branches: [ main ]
-    paths:
-      - 'Project4-Monitoring/**'
-
+    
 env:
   DOTNET_VERSION: '8.0.x'
   IMAGE_NAME: project4-monitoring-app
