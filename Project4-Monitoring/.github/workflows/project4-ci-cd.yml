@@ -1,0 +1,121 @@
+name: CI/CD — Project 4 Monitoring & Logging
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'Project4-Monitoring/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'Project4-Monitoring/**'
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  IMAGE_NAME: project4-monitoring-app
+
+jobs:
+
+  build-and-test:
+    name: 🔨 Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: 📦 Restore packages
+        working-directory: Project4-Monitoring
+        run: dotnet restore MonitoringApp.sln
+
+      - name: 🔨 Build
+        working-directory: Project4-Monitoring
+        run: dotnet build MonitoringApp.sln --no-restore -c Release
+
+      - name: 🧪 Run tests
+        working-directory: Project4-Monitoring
+        run: |
+          dotnet test MonitoringApp.sln \
+            --no-build -c Release \
+            --verbosity normal \
+            --logger "trx;LogFileName=test-results.trx" \
+            --results-directory ./TestResults
+
+      - name: 📊 Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: project4-test-results
+          path: Project4-Monitoring/TestResults/*.trx
+
+  docker-build:
+    name: 🐳 Docker Build
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🏗️ Build Docker image
+        working-directory: Project4-Monitoring
+        run: |
+          docker build \
+            -t ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -t ${{ env.IMAGE_NAME }}:latest \
+            .
+
+      - name: 🔍 Show image size
+        run: docker images ${{ env.IMAGE_NAME }}
+
+  integration-check:
+    name: 🔗 Stack Integration Check
+    runs-on: ubuntu-latest
+    needs: docker-build
+
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Start monitoring stack
+        working-directory: Project4-Monitoring
+        run: docker compose up -d --build
+
+      - name: ⏳ Wait for services
+        run: sleep 20
+
+      - name: 🧪 Test app health endpoint
+        run: |
+          curl -f http://localhost:5000/api/monitoring/health || exit 1
+          echo "✅ Health check passing!"
+
+      - name: 🧪 Test Prometheus metrics endpoint
+        run: |
+          curl -f http://localhost:5000/metrics || exit 1
+          echo "✅ Prometheus metrics available!"
+
+      - name: 🧪 Test Prometheus is scraping
+        run: |
+          curl -f http://localhost:9090/-/healthy || exit 1
+          echo "✅ Prometheus is running!"
+
+      - name: 🧪 Test Grafana is running
+        run: |
+          curl -f http://localhost:3000/api/health || exit 1
+          echo "✅ Grafana dashboard is running!"
+
+      - name: 📋 Show running containers
+        run: docker compose -f Project4-Monitoring/docker-compose.yml ps
+
+      - name: 🛑 Stop containers
+        if: always()
+        working-directory: Project4-Monitoring
+        run: docker compose down

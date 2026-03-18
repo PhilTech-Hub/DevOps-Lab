@@ -1,0 +1,73 @@
+version: '3.8'
+
+# =============================================================================
+# Project 4 — Full Monitoring Stack
+#
+# Services:
+#   monitoringapp  — ASP.NET API with structured logging  (port 5000)
+#   prometheus     — Scrapes and stores metrics           (port 9090)
+#   grafana        — Visualizes metrics in dashboards     (port 3000)
+#
+# Run with: docker-compose up --build
+# =============================================================================
+
+services:
+
+  # ── ASP.NET Monitoring App ───────────────────────────────────────────────────
+  monitoringapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: monitoring-app
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+    volumes:
+      - ./logs:/app/logs    # Persist log files
+    restart: unless-stopped
+    networks:
+      - monitoring-network
+
+  # ── Prometheus — Metrics Collection ──────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: monitoring-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=15d'
+    restart: unless-stopped
+    networks:
+      - monitoring-network
+
+  # ── Grafana — Metrics Dashboard ───────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: monitoring-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - monitoring-network
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  monitoring-network:
+    driver: bridge
