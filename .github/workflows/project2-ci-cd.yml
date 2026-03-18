@@ -3,12 +3,8 @@ name: CI/CD — Project 2 Docker + NGINX
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'Project2-Docker/**'   # Only triggers when Project2 files change
   pull_request:
     branches: [ main ]
-    paths:
-      - 'Project2-Docker/**'
 
 env:
   DOTNET_VERSION: '8.0.x'
@@ -42,8 +38,7 @@ jobs:
         working-directory: Project2-Docker
         run: |
           dotnet test MediaApp2.sln \
-            --no-build \
-            -c Release \
+            --no-build -c Release \
             --verbosity normal \
             --logger "trx;LogFileName=test-results.trx" \
             --results-directory ./TestResults

@@ -3,12 +3,8 @@ name: CI/CD — Project 4 Monitoring & Logging
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'Project4-Monitoring/**'
   pull_request:
     branches: [ main ]
-    paths:
-      - 'Project4-Monitoring/**'
 
 env:
   DOTNET_VERSION: '8.0.x'
@@ -16,6 +12,7 @@ env:
 
 jobs:
 
+  # ── JOB 1: Build & Test ─────────────────────────────────────────────────────
   build-and-test:
     name: 🔨 Build & Test
     runs-on: ubuntu-latest
@@ -53,6 +50,7 @@ jobs:
           name: project4-test-results
           path: Project4-Monitoring/TestResults/*.trx
 
+  # ── JOB 2: Docker Build ──────────────────────────────────────────────────────
   docker-build:
     name: 🐳 Docker Build
     runs-on: ubuntu-latest
@@ -76,6 +74,20 @@ jobs:
       - name: 🔍 Show image size
         run: docker images ${{ env.IMAGE_NAME }}
 
+      # Uncomment when Docker Hub secrets are added:
+      # - name: 🔐 Login to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+      #
+      # - name: 📤 Push to Docker Hub
+      #   run: |
+      #     docker tag ${{ env.IMAGE_NAME }}:latest \
+      #       ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+      #     docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+
+  # ── JOB 3: Integration Check ─────────────────────────────────────────────────
   integration-check:
     name: 🔗 Stack Integration Check
     runs-on: ubuntu-latest

@@ -31,12 +31,15 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: 📦 Restore packages
+        working-directory: Project1-CICD
         run: dotnet restore MediaApp.sln
 
       - name: 🔨 Build solution
+        working-directory: Project1-CICD
         run: dotnet build MediaApp.sln --no-restore -c Release
 
       - name: 🧪 Run all tests
+        working-directory: Project1-CICD
         run: |
           dotnet test MediaApp.sln \
             --no-build \
@@ -50,7 +53,7 @@ jobs:
         if: always()
         with:
           name: test-results
-          path: TestResults/*.trx
+          path: Project1-CICD/TestResults/*.trx
 
   # ── JOB 2: Docker Build ──────────────────────────────────────────────────────
   docker-build:
@@ -66,6 +69,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: 🏗️ Build Docker image
+        working-directory: Project1-CICD
         run: |
           docker build \
             -t ${{ env.IMAGE_NAME }}:${{ github.sha }} \
@@ -105,9 +109,11 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: 📦 Restore packages
+        working-directory: Project1-CICD
         run: dotnet restore MediaApp.sln
 
       - name: 📦 Publish app
+        working-directory: Project1-CICD
         run: dotnet publish MediaApp/MediaApp.csproj -c Release -o ./publish
 
       # Uncomment when Azure secret is added:
@@ -127,4 +133,4 @@ jobs:
           echo "✅ Media App published successfully!"
           echo "Commit: ${{ github.sha }}"
           echo "Branch: ${{ github.ref_name }}"
-          ls -lh ./publish
+          ls -lh Project1-CICD/publish
