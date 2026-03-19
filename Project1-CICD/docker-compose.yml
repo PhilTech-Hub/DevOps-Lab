@@ -1,0 +1,59 @@
+version: '3.8'
+
+# =============================================================================
+# docker-compose.yml — runs the full stack locally with one command:
+#   docker-compose up
+#
+# Services:
+#   app  — the ASP.NET Media API  (port 8080)
+#   db   — SQL Server database    (port 1433)
+# =============================================================================
+
+services:
+
+  # ── ASP.NET Application ─────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: media-app
+    ports:
+      - "8080:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Server=db;Database=MediaDb;User Id=sa;Password=YourPassword123!;TrustServerCertificate=true
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - media-network
+
+  # ── SQL Server Database ──────────────────────────────────────────────────────
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: media-db
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourPassword123!
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P YourPassword123! -Q 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - media-network
+
+# ── Volumes & Networks ────────────────────────────────────────────────────────
+volumes:
+  sqldata:    # persists database data between container restarts
+
+networks:
+  media-network:
+    driver: bridge
